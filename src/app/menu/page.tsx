@@ -22,7 +22,7 @@ export default function MenuPage() {
   const filteredItems = mockMenuItems.filter((item) => {
     const matchesSearch =
       item.name.includes(searchQuery) ||
-      item.description.includes(searchQuery) ||
+      item.description?.includes(searchQuery) ||
       (item.ingredients && item.ingredients.some(i => i.includes(searchQuery)))
     const matchesCategory = selectedCategory === '全部' || item.category === selectedCategory
     const matchesFilter = selectedFilter === '全部' || (item.suitable_for && item.suitable_for.some(t => t.includes(selectedFilter)))
