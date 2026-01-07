@@ -14,13 +14,16 @@ import { useCartStore } from '@/store/cartStore'
 import { useAuthStore } from '@/store/authStore'
 import { api as authApi, supabase, getAccessToken } from '@/lib/auth-api'
 import { api } from '@/lib/api'
+import type { Profile } from '@/types'
 
 export default function CartPage() {
   const { items, updateQuantity, removeItem, clearCart, total } = useCartStore()
   const { user } = useAuthStore()
   const [deliveryTime, setDeliveryTime] = useState('11:00')
   const [specialInstructions, setSpecialInstructions] = useState('')
-  const [selectedProfile, setSelectedProfile] = useState<string>('王先生')
+  const [selectedProfile, setSelectedProfile] = useState<Profile | null>(null)
+  const [profiles, setProfiles] = useState<Profile[]>([])
+  const [loadingProfiles, setLoadingProfiles] = useState(false)
   const [mounted, setMounted] = useState(false)
 
   // 確保只在客戶端渲染後顯示金額，避免 hydration mismatch
@@ -36,11 +39,40 @@ export default function CartPage() {
     }
   }, [user])
 
+  // Fetch profiles when user is authenticated
+  useEffect(() => {
+    const fetchProfiles = async () => {
+      if (!user) {
+        setProfiles([])
+        return
+      }
+      
+      setLoadingProfiles(true)
+      try {
+        const token = getAccessToken()
+        if (token) {
+          api.setToken(token)
+          const profileList = await api.getProfiles()
+          setProfiles(profileList)
+          // Auto-select first profile if available
+          if (profileList.length > 0 && !selectedProfile) {
+            setSelectedProfile(profileList[0])
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch profiles:', error)
+      } finally {
+        setLoadingProfiles(false)
+      }
+    }
+    
+    fetchProfiles()
+  }, [user])
+
   const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0)
   const deliveryFee = subtotal >= 500 ? 0 : 50
   const cartTotal = total()
 
-  const profiles = ['王先生', '王太太', '張爺爺']
 
   const handleCheckout = async () => {
     if (items.length === 0) {
@@ -60,8 +92,8 @@ export default function CartPage() {
       return
     }
 
-    // For demo purposes, use a default profile ID
-    const profileId = user?.id || 'demo-profile-id'
+    // Use selected profile ID
+    const profileId = selectedProfile?.id
 
     try {
       toast.loading('正在建立訂單...')
@@ -115,20 +147,34 @@ export default function CartPage() {
                 <span className="font-medium">配送對象</span>
               </div>
               <div className="flex space-x-2 overflow-x-auto">
-                {profiles.map((profile) => (
-                  <button
-                    key={profile}
-                    onClick={() => setSelectedProfile(profile)}
-                    className={cn(
-                      'px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all',
-                      selectedProfile === profile
-                        ? 'bg-primary-500 text-white'
-                        : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
-                    )}
-                  >
-                    {profile}
-                  </button>
-                ))}
+                {loadingProfiles ? (
+                  <div className="flex space-x-2">
+                    {[1, 2, 3].map((i) => (
+                      <div
+                        key={i}
+                        className="px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap bg-neutral-100 animate-pulse"
+                        style={{ width: '80px', height: '36px' }}
+                      />
+                    ))}
+                  </div>
+                ) : profiles.length > 0 ? (
+                  profiles.map((profile) => (
+                    <button
+                      key={profile.id}
+                      onClick={() => setSelectedProfile(profile)}
+                      className={cn(
+                        'px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all',
+                        selectedProfile?.id === profile.id
+                          ? 'bg-primary-500 text-white'
+                          : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+                      )}
+                    >
+                      {profile.name}
+                    </button>
+                  ))
+                ) : (
+                  <p className="text-sm text-neutral-500">尚無長輩檔案，請先新增</p>
+                )}
               </div>
             </CardContent>
           </Card>
