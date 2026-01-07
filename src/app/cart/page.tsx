@@ -12,13 +12,13 @@ import { cn } from '@/lib/utils'
 import { formatCurrency } from '@/lib/format'
 import { useCartStore } from '@/store/cartStore'
 import { useAuthStore } from '@/store/authStore'
-import { api as authApi, supabase, getAccessToken } from '@/lib/auth-api'
+import { supabase } from '@/lib/auth-api'
 import { api } from '@/lib/api'
 import type { Profile } from '@/types'
 
 export default function CartPage() {
   const { items, updateQuantity, removeItem, clearCart, total } = useCartStore()
-  const { user, isAuthenticated, initialize } = useAuthStore()
+  const { initialize } = useAuthStore()
   const [deliveryTime, setDeliveryTime] = useState('11:00')
   const [specialInstructions, setSpecialInstructions] = useState('')
   const [selectedProfile, setSelectedProfile] = useState<Profile | null>(null)
@@ -34,17 +34,33 @@ export default function CartPage() {
   // Initialize auth store and load profiles from backend on mount
   useEffect(() => {
     const initAndLoadProfiles = async () => {
-      await initialize()
+      try {
+        // 1. 初始化 auth store
+        await initialize()
 
-      if (isAuthenticated) {
-        const token = getAccessToken()
-        if (token) {
-          api.setToken(token)
+        // 2. 直接從 Supabase 取得最新 session，確保拿到最新 token
+        const { data: { session } } = await supabase.auth.getSession()
+        
+        if (!session?.access_token) {
+          // 沒有有效的 session，等待一小段時間後重試（解決 race condition）
+          await new Promise(resolve => setTimeout(resolve, 500))
+          const { data: { session: retrySession } } = await supabase.auth.getSession()
+          
+          if (!retrySession?.access_token) {
+            return // 沒有登入，正常狀況
+          }
+          
+          // 設定 token
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('sb-access-token', retrySession.access_token)
+          }
+          api.setToken(retrySession.access_token)
+          
+          // 載入長輩資料
           setLoadingProfiles(true)
           try {
             const profileList = await api.getProfiles()
             setProfiles(profileList)
-            // Auto-select first profile if available
             if (profileList.length > 0 && !selectedProfile) {
               setSelectedProfile(profileList[0])
             }
@@ -53,14 +69,72 @@ export default function CartPage() {
           } finally {
             setLoadingProfiles(false)
           }
+          return
         }
-      } else {
-        setProfiles([])
+
+        // 3. 使用 Supabase session 的 token
+        api.setToken(session.access_token)
+        
+        // 4. 載入長輩資料
+        setLoadingProfiles(true)
+        try {
+          const profileList = await api.getProfiles()
+          setProfiles(profileList)
+          // Auto-select first profile if available
+          if (profileList.length > 0 && !selectedProfile) {
+            setSelectedProfile(profileList[0])
+          }
+        } catch (error) {
+          console.error('Failed to fetch profiles:', error)
+        } finally {
+          setLoadingProfiles(false)
+        }
+      } catch (error) {
+        console.error('Failed to initialize and load profiles:', error)
       }
     }
 
     initAndLoadProfiles()
-  }, [isAuthenticated, initialize])
+
+    // 監聽 auth 狀態變化，重新載入 profiles
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (event === 'SIGNED_IN' && session?.access_token) {
+          // 登入成功，重新載入
+          api.setToken(session.access_token)
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('sb-access-token', session.access_token)
+          }
+          setLoadingProfiles(true)
+          try {
+            const profileList = await api.getProfiles()
+            setProfiles(profileList)
+            if (profileList.length > 0 && !selectedProfile) {
+              setSelectedProfile(profileList[0])
+            }
+          } catch (error) {
+            console.error('Failed to fetch profiles after sign in:', error)
+          } finally {
+            setLoadingProfiles(false)
+          }
+        } else if (event === 'SIGNED_OUT') {
+          // 登出，清空
+          setProfiles([])
+          setSelectedProfile(null)
+        } else if (event === 'TOKEN_REFRESHED' && session?.access_token) {
+          // Token 刷新，更新 API token
+          api.setToken(session.access_token)
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('sb-access-token', session.access_token)
+          }
+        }
+      }
+    )
+
+    return () => {
+      subscription.unsubscribe()
+    }
+  }, [initialize])
 
   const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0)
   const deliveryFee = subtotal >= 500 ? 0 : 50
@@ -79,13 +153,14 @@ export default function CartPage() {
     }
 
     // Check if user is logged in
-    if (!isAuthenticated) {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) {
       toast.error('請先登入才能付款')
       window.location.href = '/login?redirect=/cart'
       return
     }
 
-    // Use selected profile ID
+    // 使用選中的長輩 ID
     const profileId = selectedProfile?.id
 
     try {
