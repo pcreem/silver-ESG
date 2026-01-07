@@ -12,7 +12,8 @@ import { cn } from '@/lib/utils'
 import { formatCurrency } from '@/lib/format'
 import { useCartStore } from '@/store/cartStore'
 import { useAuthStore } from '@/store/authStore'
-import { api, supabase } from '@/lib/auth-api'
+import { api as authApi, supabase, getAccessToken } from '@/lib/auth-api'
+import { api } from '@/lib/api'
 
 export default function CartPage() {
   const { items, updateQuantity, removeItem, clearCart, total } = useCartStore()
@@ -26,6 +27,14 @@ export default function CartPage() {
   useEffect(() => {
     setMounted(true)
   }, [])
+
+  // Set API token when user changes
+  useEffect(() => {
+    const token = getAccessToken()
+    if (token) {
+      api.setToken(token)
+    }
+  }, [user])
 
   const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0)
   const deliveryFee = subtotal >= 500 ? 0 : 50
