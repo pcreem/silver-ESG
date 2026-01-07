@@ -12,7 +12,7 @@ import { cn } from '@/lib/utils'
 import { formatCurrency } from '@/lib/format'
 import { useCartStore } from '@/store/cartStore'
 import { useAuthStore } from '@/store/authStore'
-import { api } from '@/lib/api'
+import { api, supabase } from '@/lib/auth-api'
 
 export default function CartPage() {
   const { items, updateQuantity, removeItem, clearCart, total } = useCartStore()
@@ -50,6 +50,10 @@ export default function CartPage() {
     try {
       toast.loading('正在建立訂單...')
 
+      // Get current user email from Supabase
+      const { data: { user: supabaseUser } } = await supabase.auth.getUser()
+      const userEmail = supabaseUser?.email
+
       const orderData = {
         profile_id: profileId,
         items: items.map((item) => ({
@@ -58,6 +62,7 @@ export default function CartPage() {
           special_instructions: item.id === 'special' ? specialInstructions : undefined,
         })),
         total_amount: cartTotal,
+        customer_email: userEmail, // Pass user email to backend
       }
 
       const result = await api.createOrder(orderData)
