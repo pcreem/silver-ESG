@@ -53,6 +53,13 @@ export default function CartPage() {
       return
     }
 
+    // Check if user is logged in
+    if (!user) {
+      toast.error('請先登入才能付款')
+      window.location.href = '/login?redirect=/cart'
+      return
+    }
+
     // For demo purposes, use a default profile ID
     const profileId = user?.id || 'demo-profile-id'
 

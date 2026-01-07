@@ -8,7 +8,7 @@ import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/store/authStore'
 import { api } from '@/lib/api'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -17,6 +17,8 @@ export default function LoginPage() {
   const [error, setError] = useState('')
   const { login } = useAuthStore()
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const redirectUrl = searchParams.get('redirect') || '/dashboard'
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -46,7 +48,7 @@ export default function LoginPage() {
           api.setToken(data.session.access_token)
         }
 
-        router.push('/dashboard')
+        router.push(redirectUrl)
       }
     } catch (err: any) {
       setError(err.message || '登入失敗')
