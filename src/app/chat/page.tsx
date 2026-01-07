@@ -24,10 +24,10 @@ interface QuickQuestion {
 }
 
 const quickQuestions: QuickQuestion[] = [
-  { text: '今天有什麼推薦的餐點？', icon: '🍽️' },
-  { text: '我想預約明天的配送', icon: '📅' },
-  { text: '我的營養攝取狀況如何？', icon: '📊' },
-  { text: '有哪些適合糖尿病的餐點？', icon: '🍬' },
+  { text: '什麼是低鈉餐？適合什麼人？', icon: '🧂' },
+  { text: '糖尿病患的一日營養建議', icon: '📋' },
+  { text: '高血壓飲食要注意什麼？', icon: '❤️' },
+  { text: '有什麼慢性病適合的餐點？', icon: '🍽️' },
 ]
 
 const initialMessages: Message[] = [
