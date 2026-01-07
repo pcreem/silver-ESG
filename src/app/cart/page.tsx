@@ -18,66 +18,49 @@ import type { Profile } from '@/types'
 
 export default function CartPage() {
   const { items, updateQuantity, removeItem, clearCart, total } = useCartStore()
-  const { user, initialize } = useAuthStore()
+  const { user, isAuthenticated, initialize } = useAuthStore()
   const [deliveryTime, setDeliveryTime] = useState('11:00')
   const [specialInstructions, setSpecialInstructions] = useState('')
   const [selectedProfile, setSelectedProfile] = useState<Profile | null>(null)
   const [profiles, setProfiles] = useState<Profile[]>([])
   const [loadingProfiles, setLoadingProfiles] = useState(false)
   const [mounted, setMounted] = useState(false)
-  const [initialized, setInitialized] = useState(false)
 
   // 確保只在客戶端渲染後顯示金額，避免 hydration mismatch
   useEffect(() => {
     setMounted(true)
   }, [])
 
-  // Initialize auth store and wait for it
+  // Initialize auth store and load profiles from backend on mount
   useEffect(() => {
-    const initAuth = async () => {
+    const initAndLoadProfiles = async () => {
       await initialize()
-      setInitialized(true)
-    }
-    initAuth()
-  }, [initialize])
 
-  // Set API token when user changes
-  useEffect(() => {
-    const token = getAccessToken()
-    if (token) {
-      api.setToken(token)
-    }
-  }, [user])
-
-  // Fetch profiles when user is authenticated and auth is initialized
-  useEffect(() => {
-    const fetchProfiles = async () => {
-      if (!user || !initialized) {
-        setProfiles([])
-        return
-      }
-
-      setLoadingProfiles(true)
-      try {
+      if (isAuthenticated) {
         const token = getAccessToken()
         if (token) {
           api.setToken(token)
-          const profileList = await api.getProfiles()
-          setProfiles(profileList)
-          // Auto-select first profile if available
-          if (profileList.length > 0 && !selectedProfile) {
-            setSelectedProfile(profileList[0])
+          setLoadingProfiles(true)
+          try {
+            const profileList = await api.getProfiles()
+            setProfiles(profileList)
+            // Auto-select first profile if available
+            if (profileList.length > 0 && !selectedProfile) {
+              setSelectedProfile(profileList[0])
+            }
+          } catch (error) {
+            console.error('Failed to fetch profiles:', error)
+          } finally {
+            setLoadingProfiles(false)
           }
         }
-      } catch (error) {
-        console.error('Failed to fetch profiles:', error)
-      } finally {
-        setLoadingProfiles(false)
+      } else {
+        setProfiles([])
       }
     }
 
-    fetchProfiles()
-  }, [user, initialized])
+    initAndLoadProfiles()
+  }, [isAuthenticated, initialize])
 
   const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0)
   const deliveryFee = subtotal >= 500 ? 0 : 50
@@ -96,7 +79,7 @@ export default function CartPage() {
     }
 
     // Check if user is logged in
-    if (!user) {
+    if (!isAuthenticated) {
       toast.error('請先登入才能付款')
       window.location.href = '/login?redirect=/cart'
       return
