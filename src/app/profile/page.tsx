@@ -21,13 +21,14 @@ const DIETARY_RESTRICTION_OPTIONS = [
 ]
 
 export default function ProfilePage() {
-  const { user, isAuthenticated } = useAuthStore()
+  const { user, isAuthenticated, initialize } = useAuthStore()
   const [profiles, setProfiles] = useState<Profile[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [editingProfile, setEditingProfile] = useState<Profile | null>(null)
   const [newDisease, setNewDisease] = useState('')
   const [newRestriction, setNewRestriction] = useState('')
+  const [initialized, setInitialized] = useState(false)
   const [formData, setFormData] = useState({
     name: '',
     age: '',
@@ -39,17 +40,25 @@ export default function ProfilePage() {
     dietary_restrictions: [] as string[],
   })
 
-  // Load profiles from backend on mount and when auth state changes
+  // Initialize auth store and load profiles from backend on mount
   useEffect(() => {
     console.log('[Profile] useEffect triggered, isAuthenticated:', isAuthenticated, ', user:', user?.id)
-    if (isAuthenticated) {
-      loadProfiles()
-    } else {
-      // Clear profiles when not authenticated
-      setProfiles([])
-      setLoading(false)
+
+    const initAndLoad = async () => {
+      await initialize()
+      setInitialized(true)
+
+      if (isAuthenticated) {
+        loadProfiles()
+      } else {
+        // Clear profiles when not authenticated
+        setProfiles([])
+        setLoading(false)
+      }
     }
-  }, [isAuthenticated])
+
+    initAndLoad()
+  }, [isAuthenticated, initialize])
 
   const loadProfiles = async () => {
     try {

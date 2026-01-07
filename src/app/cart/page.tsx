@@ -18,18 +18,28 @@ import type { Profile } from '@/types'
 
 export default function CartPage() {
   const { items, updateQuantity, removeItem, clearCart, total } = useCartStore()
-  const { user } = useAuthStore()
+  const { user, initialize } = useAuthStore()
   const [deliveryTime, setDeliveryTime] = useState('11:00')
   const [specialInstructions, setSpecialInstructions] = useState('')
   const [selectedProfile, setSelectedProfile] = useState<Profile | null>(null)
   const [profiles, setProfiles] = useState<Profile[]>([])
   const [loadingProfiles, setLoadingProfiles] = useState(false)
   const [mounted, setMounted] = useState(false)
+  const [initialized, setInitialized] = useState(false)
 
   // 確保只在客戶端渲染後顯示金額，避免 hydration mismatch
   useEffect(() => {
     setMounted(true)
   }, [])
+
+  // Initialize auth store and wait for it
+  useEffect(() => {
+    const initAuth = async () => {
+      await initialize()
+      setInitialized(true)
+    }
+    initAuth()
+  }, [initialize])
 
   // Set API token when user changes
   useEffect(() => {
@@ -39,14 +49,14 @@ export default function CartPage() {
     }
   }, [user])
 
-  // Fetch profiles when user is authenticated
+  // Fetch profiles when user is authenticated and auth is initialized
   useEffect(() => {
     const fetchProfiles = async () => {
-      if (!user) {
+      if (!user || !initialized) {
         setProfiles([])
         return
       }
-      
+
       setLoadingProfiles(true)
       try {
         const token = getAccessToken()
@@ -65,9 +75,9 @@ export default function CartPage() {
         setLoadingProfiles(false)
       }
     }
-    
+
     fetchProfiles()
-  }, [user])
+  }, [user, initialized])
 
   const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0)
   const deliveryFee = subtotal >= 500 ? 0 : 50
