@@ -1,13 +1,13 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card'
 import { Button } from '@/components/ui'
 import { CheckCircle, ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 
-export default function OrderSuccessPage() {
+function OrderSuccessContent() {
     const searchParams = useSearchParams()
     const sessionId = searchParams.get('session_id')
     const [orderId, setOrderId] = useState<string | null>(null)
@@ -64,5 +64,13 @@ export default function OrderSuccessPage() {
                 </CardContent>
             </Card>
         </div>
+    )
+}
+
+export default function OrderSuccessPage() {
+    return (
+        <Suspense fallback={<div className="page-container flex items-center justify-center min-h-[60vh]">Loading...</div>}>
+            <OrderSuccessContent />
+        </Suspense>
     )
 }
