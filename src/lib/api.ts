@@ -212,6 +212,7 @@ export const mockMenuItems: MenuItem[] = [
     price: 12000, // 120 yuan = 12000 cents
     category: '粥品',
     available: true,
+    ingredients: ['雞肉', '白米', '薑'],
     created_at: new Date().toISOString(),
   },
   {
@@ -224,6 +225,7 @@ export const mockMenuItems: MenuItem[] = [
     price: 15000, // 150 yuan = 15000 cents
     category: '主菜',
     available: true,
+    ingredients: ['鯛魚', '嫩豆腐', '蔥', '薑'],
     created_at: new Date().toISOString(),
   },
   {
@@ -236,6 +238,7 @@ export const mockMenuItems: MenuItem[] = [
     price: 8000, // 80 yuan = 8000 cents
     category: '湯品',
     available: true,
+    ingredients: ['南瓜', '鮮奶', '洋蔥'],
     created_at: new Date().toISOString(),
   },
   {
@@ -248,6 +251,7 @@ export const mockMenuItems: MenuItem[] = [
     price: 6000, // 60 yuan = 6000 cents
     category: '湯品',
     available: true,
+    ingredients: ['菠菜', '雞蛋', '枸杞'],
     created_at: new Date().toISOString(),
   },
   {
@@ -260,6 +264,7 @@ export const mockMenuItems: MenuItem[] = [
     price: 7000, // 70 yuan = 7000 cents
     category: '甜湯',
     available: true,
+    ingredients: ['銀耳', '紅棗', '枸杞', '冰糖'],
     created_at: new Date().toISOString(),
   },
   {
@@ -272,6 +277,7 @@ export const mockMenuItems: MenuItem[] = [
     price: 10000, // 100 yuan = 10000 cents
     category: '主食',
     available: true,
+    ingredients: ['豬絞肉', '香菇', '白飯', '蔥'],
     created_at: new Date().toISOString(),
   },
 ]

@@ -33,7 +33,7 @@ export default function MenuPage() {
 
   const handleAddToCart = (item: typeof mockMenuItems[0]) => {
     addItem({
-      id: item.id,
+      id: String(item.id),
       name: item.name,
       price: item.price,
       quantity: 1,

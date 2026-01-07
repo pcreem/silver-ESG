@@ -26,6 +26,7 @@ export interface MenuItem {
   price: number // Unit: cents
   category?: string
   available: boolean
+  ingredients?: string[]
   created_at: string
 }
 
